@@ -14,9 +14,13 @@ target/
 hs_err_pid*
 
 # IDE Files
-.idea/
+idea/
 *.iml
 =======
+
+
+activemq-data/
+
 target/
 pom.xml.tag
 pom.xml.releaseBackup
