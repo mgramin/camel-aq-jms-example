@@ -1,0 +1,89 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+        http://www.springframework.org/schema/jdbc
+        http://www.springframework.org/schema/jdbc/spring-jdbc-4.1.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.1.xsd
+        http://camel.apache.org/schema/spring
+        http://camel.apache.org/schema/spring/camel-spring.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+
+
+    <camelContext xmlns="http://camel.apache.org/schema/spring">
+        <propertyPlaceholder id="prop" location="main.properties"/>
+        <route>
+            <from uri="oracleQueue:queue:ORACLE_QUEUE" />
+            <log message="header = ${headers}" />
+
+            <to uri="activemq:queue:middle_queue" />
+        </route>
+    </camelContext>
+
+
+
+
+
+    <context:property-placeholder location="main.properties" />
+
+
+
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="vm://localhost"/>
+        <property name="trustAllPackages" value="true"/>
+    </bean>
+
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg name="connectionFactory" ref="connectionFactory"/>
+        <property name="defaultDestinationName" value="${jms.queue_name}"/>
+    </bean>
+
+    <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="brokerURL" value="vm://localhost"/>
+    </bean>
+
+
+
+    <bean id="connectionFactoryOracleAQQueue" class="oracle.jms.AQjmsFactory" factory-method="getQueueConnectionFactory">
+        <constructor-arg index="0">
+            <value>jdbc:oracle:thin:@(DESCRIPTION =
+                (ADDRESS_LIST =
+                (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 49161))
+                )
+                (CONNECT_DATA =
+                (SERVICE_NAME = xe)
+                )
+                )
+            </value>
+        </constructor-arg>
+        <constructor-arg index="1" type="java.util.Properties">
+            <value></value>
+        </constructor-arg>
+    </bean>
+
+    <bean id="oracleQueueCredentials" class="org.springframework.jms.connection.UserCredentialsConnectionFactoryAdapter">
+        <property name="targetConnectionFactory">
+            <ref bean="connectionFactoryOracleAQQueue"/>
+        </property>
+        <property name="username">
+            <value>hr</value>
+        </property>
+        <property name="password">
+            <value>hr</value>
+        </property>
+    </bean>
+
+    <bean id="oracleQueue" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="connectionFactory" ref="oracleQueueCredentials" />
+    </bean>
+
+
+    <context:component-scan base-package="com.github.mgramin.cml_aq_jms.mq" />
+
+</beans>
